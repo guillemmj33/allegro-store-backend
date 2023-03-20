@@ -2,64 +2,145 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Item;
 use Illuminate\Http\Request;
+use App\Models\Item;
 
 class ItemController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
+  public function __construct()
+  {
+    $this->middleware('auth:api', ['except' => ['index', 'show']]);
+  }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+  public function index()
+  {
+    try {
+      $items = Item::all();
+      return response()->json([
+        'status' => 'success',
+        'items' => $items,
+      ], 200);
+    } catch (\Exception $e) {
+      return response()->json([
+        'status' => 'error',
+        'message' => 'Unable to fetch items',
+        'error_code' => 500,
+      ], 500);
     }
+  }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+  public function store(Request $request)
+  {
+    $request->validate([
+      'title' => 'required|string|max:255',
+      'description' => 'required|string|max:255',
+      'image' => 'required',
+      'category' => 'required|string|max:255',
+      'price' => 'required|numeric|min:0',
+      'location' => 'required|max:255',
+    ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Item $item)
-    {
-        //
-    }
+    // Handle image
+    $image = $request->file('image');
+    $imageName = time() . '.' . $image->getClientOriginalExtension();
+    $imagePath = 'storage/images/';
+    $image->move(public_path($imagePath), $imageName);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Item $item)
-    {
-        //
-    }
+    $item = Item::create([
+      'user_id' => auth()->id(),
+      'title' => $request->title,
+      'description' => $request->description,
+      'image' => $imagePath . $imageName,
+      'category' => $request->category,
+      'price' => $request->price,
+      'location' => $request->location,
+    ]);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Item $item)
-    {
-        //
+    try {
+      return response()->json([
+        'status' => 'success',
+        'message' => 'Item created successfully',
+        'item' => $item,
+      ], 200);
+    } catch (\Exception $e) {
+      return response()->json([
+        'status' => 'error',
+        'message' => 'Unable to create item',
+        'error_code' => 500,
+      ], 500);
     }
+  }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Item $item)
-    {
-        //
+  public function show($id)
+  {
+    try {
+      $item = Item::find($id);
+      return response()->json([
+        'status' => 'success',
+        'item' => $item,
+      ], 200);
+    } catch (\Exception $e) {
+      return response()->json([
+        'status' => 'error',
+        'message' => 'Unable to fetch item',
+        'error_code' => 500,
+      ], 500);
     }
+  }
+
+  public function update(Request $request, $id)
+  {
+    $request->validate([
+      'title' => 'required|string|max:255',
+      'description' => 'required|string|max:255',
+      'image' => 'required',
+      'category' => 'required|string|max:255',
+      'price' => 'required|numeric|min:0',
+      'location' => 'required|max:255',
+    ]);
+
+    $item = Item::find($id);
+    $item->user_id = auth()->id();
+    $item->title = $request->title;
+    $item->description = $request->description;
+    $item->image = $request->image;
+    $item->category = $request->category;
+    $item->price = $request->price;
+    $item->location = $request->location;
+    $item->save();
+
+    try {
+      return response()->json([
+        'status' => 'success',
+        'message' => 'Item updated successfully',
+        'item' => $item,
+      ], 200);
+    } catch (\Exception $e) {
+      return response()->json([
+        'status' => 'error',
+        'message' => 'Unable to update item',
+        'error_code' => 500,
+      ], 500);
+    }
+  }
+
+  public function destroy($id)
+  {
+    $item = Item::find($id);
+    $item->delete();
+
+    try {
+      return response()->json([
+        'status' => 'success',
+        'message' => 'Item deleted successfully',
+        'item' => $item,
+      ], 200);
+    } catch (\Exception $e) {
+      return response()->json([
+        'status' => 'error',
+        'message' => 'Unable to delete item',
+        'error_code' => 500,
+      ], 500);
+    }
+  }
 }
