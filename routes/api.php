@@ -31,7 +31,7 @@ Route::controller(AuthController::class)->group(function () {
 //Routes with middleware auth:api protection
 Route::controller(ItemController::class)->group(function () {
   Route::get('items', 'index');
-  Route::post('item', 'store');
+  Route::post('item/create', 'store');
   Route::get('item/{id}', 'show');
   Route::put('item/{id}', 'update');
   Route::delete('item/{id}', 'destroy');
